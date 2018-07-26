@@ -1,0 +1,4 @@
+gsutil mb gs://utsav-pe #make a new bucket
+gsutil cp C:\Users\User\Documents\s3.docx gs://utsav-pe #upload object
+gsutil cp C:\Users\User\Documents\desktop.ini gs://utsav-pe #upload object 2
+gsutil lifecycle set C:\Users\User\Documents\life.json gs://utsav-pe #upload lifecycle file in json form
