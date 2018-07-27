@@ -1,0 +1,8 @@
+#create instance template
+gcloud beta compute --project=pe-training instance-templates create utsav-pe-template --machine-type=custom-1-1024 --network=projects/pe-training/global/networks/default --network-tier=PREMIUM --metadata=name=utsav --maintenance-policy=MIGRATE --service-account=912623308461-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --tags=http-server,https-server --image=debian-9-stretch-v20180716 --image-project=debian-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=utsav-pe-template --labels=name=utsav
+#Create health check
+gcloud compute --project "pe-training" http-health-checks create "utsav-health-check" --port "80" --request-path "/" --check-interval "15" --timeout "15" --unhealthy-threshold "5" --healthy-threshold "3"
+#Configure instance group
+gcloud beta compute --project "pe-training" instance-groups managed create "utsav-instance-group" --base-instance-name "utsav-instance-group" --template "utsav-pe-template" --size "1" --zones "us-central1-b,us-central1-c,us-central1-f"
+#Configure auto scaling with instance group
+gcloud compute --project "pe-training" instance-groups managed set-autoscaling "utsav-instance-group" --region "us-central1" --cool-down-period "119" --max-num-replicas "5" --min-num-replicas "1" --target-load-balancing-utilization "0.65"
