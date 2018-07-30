@@ -1,0 +1,6 @@
+{
+	"instance_name" : "utsav-pub",
+ 	"instance_size" :"n1-standard-1" ,
+	"object_path" : "gs://path/utsav-pe/s3.docx"
+  "dest_path" : "gs://utsav-pe"
+}
