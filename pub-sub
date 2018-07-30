@@ -1,0 +1,107 @@
+import ast
+import base64
+import json
+import argparse
+import os
+import time
+import googleapiclient.discovery
+
+name=""
+size=""
+obj_path=""
+destination_path=""
+    
+# [START create_instance]
+def create_instance(compute, project, zone, name):
+  print(compute,project,zone,name)
+  # Get the latest Debian Jessie image.
+  image_response = compute.images().getFromFamily(
+        project='debian-cloud', family='debian-8').execute()
+  source_disk_image = image_response['selfLink']
+
+  # Configure the machine
+  machine_type = "zones/%s/machineTypes/n1-standard-1" % zone
+
+  config = {
+        'name': name,
+        'machineType': machine_type,
+
+        # Specify the boot disk and the image to use as a source.
+        'disks': [
+            {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams': {
+                    'sourceImage': source_disk_image,
+                }
+            }
+        ],
+		'networkInterfaces': [{
+                'network': 'global/networks/default',
+                'accessConfigs': [
+                    {'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}
+                ]
+            }],
+    	'metadata': {
+                'items': [{
+                    	'key': 'BucketFrom',
+                    	'value': obj_path
+            		}, {
+						'key': 'BucketTo',
+                  		'value': destination_path
+            		}, {
+                		# Startup script is automatically executed by the
+                		# instance upon startup.
+                		'key': 'startup-script',
+                		'value': '#!/bin/bash\ngsutil cp obj_path destination_path\n'
+            	}]
+            },
+        # Allow the instance to access cloud storage and logging.
+        'serviceAccounts': [{
+            'email': 'default',
+            'scopes': [
+                'https://www.googleapis.com/auth/devstorage.read_write',
+                'https://www.googleapis.com/auth/logging.write'
+            ]
+        }]
+
+    }
+  print("operation complete !!")
+
+  return compute.instances().insert(
+        project=project,
+        zone=zone,
+        body=config).execute()
+# [END create_instance]
+
+# [START delete_instance]
+def delete_instance(compute, project, zone, name):
+    return compute.instances().delete(
+        project=project,
+        zone=zone,
+        instance=name).execute()
+# [END delete_instance]
+
+def hello_pubsub(event, context):
+    """Triggered from a message on a Cloud Pub/Sub topic.
+    Args:
+         event (dict): Event payload.
+         context (google.cloud.functions.Context): Metadata for the event.
+    """
+    pubsub_message = base64.b64decode(event['data']).decode('utf-8')
+    message=ast.literal_eval(pubsub_message)
+    name=message['instance_name']
+    size=message['instance_size']
+    obj_path=message['object_path']
+    destination_path=message['dest_path']
+    compute = googleapiclient.discovery.build('compute', 'v1')
+    print(name)
+    print(size)
+    print(obj_path)
+    print(destination_path)
+    operation = create_instance(compute,"pe-training","us-central1-a",name)
+    print(operation)
+    time.sleep(5)
+    delete=delete_instance(compute,"pe-training","us-central1-a",name)
+    print(delete)
+    print("Delete instance completed!!")
